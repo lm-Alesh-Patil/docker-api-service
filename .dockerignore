@@ -1,0 +1,5 @@
+/vendor
+/go/pkg
+*.log
+*.md
+*.env
