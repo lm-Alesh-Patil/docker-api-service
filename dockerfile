@@ -1,24 +1,35 @@
-# Use Go builder
+# -----------------------
+# Build stage
+# -----------------------
 FROM golang:1.24-alpine AS builder
 WORKDIR /app
 
-# Only copy go.mod (no go.sum yet)
+# Copy go.mod only (no go.sum yet)
 COPY go.mod ./
 
 # Download modules (will skip if no external modules)
 RUN go mod download
 
-# Copy the source code
+# Copy the entire source code
 COPY . .
 
-# Build the binary
+# Build the Go binary
 RUN go build -o docker-api-service .
 
-# Final lightweight image
+# -----------------------
+# Final stage
+# -----------------------
 FROM alpine:latest
 WORKDIR /app
-COPY --from=builder /app/docker-api-service .
 
+# Install bash (and optional tools for convenience)
+RUN apk add --no-cache bash curl vim
+
+# Copy everything from builder (source code + binary)
+COPY --from=builder /app /app
+
+# Expose the port your Go app listens on
 EXPOSE 8005
 
+# Start the Go server
 CMD ["./docker-api-service"]
