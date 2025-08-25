@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/go-redis/redis/v8"
@@ -31,9 +32,16 @@ func (s *UserService) RegisterUser(ctx context.Context, name, email, password st
 		return 0, err
 	}
 
-	// Push to Redis queue
-	msg := fmt.Sprintf("%d|%s|%s", id, name, email)
-	if err := s.redis.LPush(ctx, "notification_queue", msg).Err(); err != nil {
+	// Set the generated ID in the user object
+	user.ID = id
+
+	// Push JSON to Redis queue
+	data, err := json.Marshal(user)
+	if err != nil {
+		return id, fmt.Errorf("failed to marshal user to JSON: %w", err)
+	}
+
+	if err := s.redis.LPush(ctx, "notification_queue", data).Err(); err != nil {
 		return id, fmt.Errorf("failed to push to redis: %w", err)
 	}
 
